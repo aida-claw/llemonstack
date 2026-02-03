@@ -7,7 +7,7 @@ Get up and running in minutes with
 [n8n](https://n8n.io/), [Flowise](https://flowiseai.com/), [LightRAG](https://github.com/HKUDS/LightRAG), [Supabase](https://supabase.com/),
 [Qdrant](https://qdrant.tech/),
 [LiteLLM](https://github.com/BerriAI/litellm), [Langfuse](https://github.com/langfuse/langfuse),
-[Ollama](https://ollama.com/), [Firecrawl](https://github.com/mendableai/firecrawl), [Craw4AI](https://github.com/unclecode/crawl4ai),
+[Ollama](https://ollama.com/), [Firecrawl](https://github.com/mendableai/firecrawl), [Crawl4AI](https://github.com/unclecode/crawl4ai),
 [Browser-Use](https://browser-use.com/) and more.
 
 > 💰 **No cost**, no/low code AI agent playground
