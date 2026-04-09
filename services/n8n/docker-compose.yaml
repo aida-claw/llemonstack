@@ -101,7 +101,7 @@ services:
     profiles:
       - n8n
     # Use the latest n8n image, no customizations
-    image: docker.n8n.io/n8nio/n8n:latest
+    image: docker.n8n.io/n8nio/n8n:2.16.0
 
   # Custom n8n service with tracing and ffmpeg
   n8n-custom:

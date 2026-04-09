@@ -19,7 +19,7 @@ services:
     container_name: redis
     labels:
       dev.dozzle.group: Data Stores
-    image: redis:7
+    image: redis:7.4.2-alpine
     restart: always
     command: >
       --requirepass ${REDIS_PASSWORD} --loglevel notice

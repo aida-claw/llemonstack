@@ -15,7 +15,7 @@ services:
     container_name: minio
     labels:
       dev.dozzle.group: Data Stores
-    image: minio/minio
+    image: minio/minio:RELEASE.2025-10-15T17-29-55Z
     restart: always
     entrypoint: sh
     environment:

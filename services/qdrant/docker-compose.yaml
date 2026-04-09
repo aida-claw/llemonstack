@@ -12,7 +12,7 @@ volumes:
 
 services:
   qdrant:
-    image: qdrant/qdrant
+    image: qdrant/qdrant:v1.12.1
     container_name: qdrant
     labels:
       dev.dozzle.group: Vector Stores

@@ -7,7 +7,7 @@ volumes:
   ollama_storage:
 
 x-ollama: &service-ollama
-  image: ollama/ollama:latest
+  image: ollama/ollama:0.20.4
   container_name: ollama
   labels:
     dev.dozzle.group: Local LLM
@@ -18,7 +18,7 @@ x-ollama: &service-ollama
     - ollama_storage:/root/.ollama
 
 x-init-ollama: &init-ollama
-  image: ollama/ollama:latest
+  image: ollama/ollama:0.20.4
   container_name: ollama-pull-llama
   volumes:
     - ollama_storage:/root/.ollama
@@ -52,7 +52,7 @@ services:
     profiles:
       - ollama-gpu-amd
     <<: *service-ollama
-    image: ollama/ollama:rocm
+    image: ollama/ollama:0.20.4-rocm
     devices:
       - "/dev/kfd"
       - "/dev/dri"
@@ -82,6 +82,6 @@ services:
     profiles:
       - ollama-gpu-amd
     <<: *init-ollama
-    image: ollama/ollama:rocm
+    image: ollama/ollama:0.20.4-rocm
     depends_on:
       - ollama-gpu-amd

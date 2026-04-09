@@ -18,7 +18,7 @@ volumes:
 
 services:
   neo4j:
-    image: neo4j:5
+    image: neo4j:5.26.24
     container_name: neo4j
     labels:
       dev.dozzle.group: Data Stores

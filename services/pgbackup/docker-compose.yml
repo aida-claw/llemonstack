@@ -20,7 +20,7 @@ services:
   # Example of a scheduled backup using a separate cron container
   backup-scheduler:
     container_name: pgbackup-scheduler
-    image: mcuadros/ofelia:latest
+    image: mcuadros/ofelia:v0.3.12
     depends_on:
       - backup
     volumes:
