@@ -13,6 +13,7 @@ networks:
 
 volumes:
   db-config:
+  deno-cache:
 
 # Only services listed below will be started
 # Docker extends does not copy over the following service keys:
