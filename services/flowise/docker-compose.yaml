@@ -17,7 +17,7 @@ services:
     container_name: flowise
     labels:
       dev.dozzle.group: Workflows
-    image: flowiseai/flowise:2.4.1
+    image: flowiseai/flowise:3.1.2
     restart: unless-stopped
     ports:
       - 3001:3000

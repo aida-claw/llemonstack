@@ -21,7 +21,7 @@ services:
     container_name: litellm
     labels:
       dev.dozzle.group: Proxies
-    image: ghcr.io/berriai/litellm:v1.82.6
+    image: ghcr.io/berriai/litellm:v1.83.7-stable
     volumes:
       - ./config.yaml:/app/config.yml
       - ./healthcheck.py:/app/healthcheck.py
