@@ -214,6 +214,7 @@ services:
     extends:
       file: ${LLEMONSTACK_REPOS_PATH:-.}/supabase/docker/docker-compose.yml
       service: vector
+    image: timberio/vector:0.28.1-alpine
     labels:
       dev.dozzle.group: Supabase
     volumes:
