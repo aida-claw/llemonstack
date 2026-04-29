@@ -35,7 +35,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m # Sets maximum memory to 512 MB, LiteLLM has memory leaks
+          memory: 2g # Sets maximum memory to 2GB, LiteLLM has memory leaks
     environment:
       # Set log level: DEBUG | INFO | ERROR
       # See https://docs.litellm.ai/docs/proxy/debugging
