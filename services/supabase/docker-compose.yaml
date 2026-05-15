@@ -35,6 +35,8 @@ services:
     depends_on:
       analytics:
         condition: service_healthy
+    environment:
+        STUDIO_DEFAULT_SECURE_COOKIE: "false"
 
   kong:
     extends:
@@ -146,7 +148,7 @@ services:
   # It discards all events sent to it to reduce resource consumption.
   # Logflare normally uses 500MB+ of memory. Dummy uses <3MB.
   analytics:
-    image: dummy-analytics:latest
+    image: dummy-analytics:latest@sha256:c499e0139fbde0febb8fdc313090020c7b2493166458d60e494bdb3209dc4b95
     container_name: dummy-analytics
     labels:
       dev.dozzle.group: Analytics
@@ -214,7 +216,7 @@ services:
     extends:
       file: ${LLEMONSTACK_REPOS_PATH:-.}/supabase/docker/docker-compose.yml
       service: vector
-    image: timberio/vector:0.28.1-alpine
+    image: timberio/vector:0.28.1-alpine@sha256:4bc04aca94a44f04b427a490f346e7397ef7ce61fe589d718f744f7d92cb5c80
     labels:
       dev.dozzle.group: Supabase
     volumes:

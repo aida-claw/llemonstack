@@ -57,6 +57,7 @@ x-environment: &common-env
 
   # Fix config file permissions warnings
   N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: true
+  N8N_SECURE_COOKIE: false
 
   # Task runner settings
   # See https://docs.n8n.io/hosting/configuration/task-runners/#setting-up-external-mode
@@ -101,7 +102,7 @@ services:
     profiles:
       - n8n
     # Use the latest n8n image, no customizations
-    image: docker.n8n.io/n8nio/n8n:2.16.0
+    image: docker.n8n.io/n8nio/n8n:2.16.0@sha256:c9932d755356f6879ac4aab2efcb334e1e4f2248fc516ab7b115f0def9c69873
 
   # Custom n8n service with tracing and ffmpeg
   n8n-custom:

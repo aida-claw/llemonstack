@@ -21,7 +21,7 @@ services:
     container_name: clickhouse
     labels:
       dev.dozzle.group: Data Stores
-    image: clickhouse/clickhouse-server:25.8.22.28-alpine
+    image: clickhouse/clickhouse-server:25.8.22.28-alpine@sha256:0603001614436eb535710db3269bd46b04612418c28c75c71276a9990fc89bcf
     restart: always
     user: "101:101"
     environment:
