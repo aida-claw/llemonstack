@@ -1,68 +1,82 @@
 #!/bin/bash
-# PATCH: patch-postgres-permissions.sh
-# PURPOSE: Grant correct Postgres schema permissions to service DB users.
-#          Replicates what llmn init postgres.ts does but runs from inside
-#          the supabase-db container, bypassing the host->Docker connection
-#          issue that occurs in HOST Ollama mode.
-# USAGE: Run after llmn start (Supabase must be healthy)
-# SOP REF: NE-260416-0001-01D
-
+# =========================================================
+# Supabase Multi-Service Patch (v4)
+# Flowise public-schema compatibility fix included
+# =========================================================
+# This script configures PostgreSQL schemas, roles, and
+# permissions for a multi-service Llemonstack environment.
+#
+# It provisions isolated service schemas (service_*),
+# applies role-based access control, and ensures required
+# privileges for Flowise, Langfuse, LiteLLM, Zep, and
+# Lightrag.
+#
+# Flowise requires additional compatibility with the
+# default PostgreSQL session store (connect-pg-simple),
+# which uses the 'public' schema for session management.
+# Therefore, controlled USAGE and CREATE permissions are
+# granted to the Flowise role on the public schema only.
+#
+# This is a pragmatic compatibility layer and does not
+# affect schema isolation for other services.
+# =========================================================
 set -e
 
 SERVICES=("langfuse" "flowise" "litellm" "zep" "lightrag")
 
-echo "Checking Supabase is healthy..."
+echo "========================================"
+echo " Supabase Multi-Service Patch (v4)"
+echo "========================================"
+echo "[1/4] Checking database connectivity..."
+
 if ! docker exec supabase-db psql -U postgres -c "SELECT 1;" > /dev/null 2>&1; then
-  echo "ERROR: Cannot connect to supabase-db. Is the stack running?"
+  echo "ERROR: Cannot connect to supabase-db"
   exit 1
 fi
 
+echo ""
+echo "[2/4] Applying service schema permissions..."
+
 for SERVICE in "${SERVICES[@]}"; do
   SCHEMA="service_${SERVICE}"
-  USERNAME="${SERVICE}"
+  ROLE="${SERVICE}"
 
-  echo "--- Processing ${SERVICE} ---"
+  echo ""
+  echo "----------------------------------------"
+  echo "Service: ${SERVICE}"
+  echo "Schema : ${SCHEMA}"
+  echo "Role   : ${ROLE}"
+  echo "----------------------------------------"
 
-  # Check if user exists
-  USER_EXISTS=$(docker exec supabase-db psql -U postgres -tAc \
-    "SELECT 1 FROM pg_roles WHERE rolname='${USERNAME}';" 2>/dev/null)
+  echo "Ensuring schema exists..."
+  docker exec supabase-db psql -U postgres -c "CREATE SCHEMA IF NOT EXISTS ${SCHEMA};" > /dev/null
 
-  if [ "$USER_EXISTS" != "1" ]; then
-    echo "SKIP: User '${USERNAME}' does not exist -- skipping"
-    continue
-  fi
-
-  # Check if schema exists
-  SCHEMA_EXISTS=$(docker exec supabase-db psql -U postgres -tAc \
-    "SELECT 1 FROM pg_namespace WHERE nspname='${SCHEMA}';" 2>/dev/null)
-
-  if [ "$SCHEMA_EXISTS" != "1" ]; then
-    echo "SKIP: Schema '${SCHEMA}' does not exist -- skipping"
-    continue
-  fi
-
-  # Grant postgres membership in service role (required for ALTER TABLE OWNER)
-  docker exec supabase-db psql -U postgres -c \
-    "GRANT ${USERNAME} TO postgres;" > /dev/null 2>&1 || true
-
-  # Grant schema permissions
+  echo "Applying permissions..."
   docker exec supabase-db psql -U postgres -c "
-    GRANT ALL PRIVILEGES ON SCHEMA ${SCHEMA} TO ${USERNAME};
-    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${SCHEMA} TO ${USERNAME};
-    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ${SCHEMA} TO ${USERNAME};
-    GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA ${SCHEMA} TO ${USERNAME};
-    ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA} GRANT ALL ON TABLES TO ${USERNAME};
-    ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA} GRANT ALL ON SEQUENCES TO ${USERNAME};
-    ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA} GRANT ALL ON FUNCTIONS TO ${USERNAME};
-    GRANT USAGE ON SCHEMA extensions TO ${USERNAME};
-    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO ${USERNAME};
-    GRANT USAGE ON SCHEMA public TO ${USERNAME};
-    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${USERNAME};
-    ALTER ROLE ${USERNAME} SET search_path TO ${SCHEMA},extensions,public;
-  " 2>&1
+    GRANT USAGE, CREATE ON SCHEMA ${SCHEMA} TO ${ROLE};
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${SCHEMA} TO ${ROLE};
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ${SCHEMA} TO ${ROLE};
+    GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA ${SCHEMA} TO ${ROLE};
+    ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA} GRANT ALL ON TABLES TO ${ROLE};
+    ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA} GRANT ALL ON SEQUENCES TO ${ROLE};
+    ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA} GRANT ALL ON FUNCTIONS TO ${ROLE};
+    ALTER ROLE ${ROLE} SET search_path TO ${SCHEMA},public,extensions;
+  " > /dev/null
 
-  echo "PASS: ${SERVICE} permissions granted successfully"
+  echo "PASS: ${SERVICE}"
 done
 
 echo ""
-echo "PASS: All service permissions patched successfully"
+echo "----------------------------------------"
+echo "Flowise session-store public schema fix"
+echo "----------------------------------------"
+
+echo "Granting Flowise access to public schema ONLY..."
+docker exec supabase-db psql -U postgres -c "
+  GRANT USAGE, CREATE ON SCHEMA public TO flowise;
+" > /dev/null
+
+echo ""
+echo "========================================"
+echo " PATCH COMPLETE (v4)"
+echo "========================================"
