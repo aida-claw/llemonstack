@@ -29,7 +29,8 @@ services:
       - "--config=/app/config.yml"
     ports:
       # Supabase Logflare uses port 4000
-      - "3004:4000"
+      # - "3004:4000"
+      - "127.0.0.1:3004:4000"     
     extra_hosts:
       - "host.docker.internal:host-gateway"
     deploy:
@@ -42,6 +43,11 @@ services:
       LITELLM_LOG: ${LITELLM_LOG_LEVEL:-INFO}
       # JSON_LOGS: "True"
       DATABASE_URL: ${LITELLM_DATABASE_URL}
+
+      # Aida-Claw Fork:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
 
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY} # Key used by services to access litellm proxy
       LITELLM_SALT_KEY: ${LITELLM_SALT_KEY} # Salt key used to encrypt data in db

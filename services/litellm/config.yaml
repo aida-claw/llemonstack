@@ -38,14 +38,18 @@ litellm_settings:
 
   # CACHE SETTINGS
   # See https://docs.litellm.ai/docs/proxy/caching
-  # cache: ${ENABLE_REDIS} # Enable cache if redis is enabled
-  # cache_params:
-  #   type: redis
-  #   namespace: "litellm.caching.caching"
-  #   ttl: 3600 # cached on redis for 3600 seconds (1 hour)
-  #   host: "redis"  # The host address for the redis cache
-  #   port: 6379  # The port number for the redis cache
-  #   password: ${REDIS_PASSWORD}  # The password for the redis cache
+  cache: true # Enable cache if redis is enabled
+  cache_params:
+    type: redis
+    namespace: "litellm.caching.caching"
+    ttl: 3600 # cached on redis for 3600 seconds (1 hour)
+
+    # Aida-claw NOTE: 
+    #     Variable interpolation does not work here:
+    # host: "redis"  # The host address for the redis cache
+    # port: 6379  # The port number for the redis cache
+    # username: "default"
+    # password: os.environ/REDIS_PASSWORD # The password for the redis cache
 
   # Default observability settings
   success_callback: ["langfuse"]
