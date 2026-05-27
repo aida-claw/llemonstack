@@ -34,7 +34,7 @@ services:
     #   condition: service_healthy
 
     ports:
-      - "3030:3030"
+      - "127.0.0.1:3030:3030"
     environment: &langfuse-worker-env
       # Postgres connection string
       # e.g. postgresql://user:password@host:5432/postgres?schema=public
@@ -87,7 +87,7 @@ services:
     # Uncomment depends_on services if include is uncommented at top of file
     # depends_on: *langfuse-depends-on
     ports:
-      - "3005:3000"
+      - "127.0.0.1:3005:3000"
     environment:
       <<: *langfuse-worker-env
       NEXTAUTH_URL: http://localhost:3005 # Match the public host port
