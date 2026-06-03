@@ -95,6 +95,7 @@ model_list:
       model: "openai/qwen3.6-35b-a3b"
       api_base: http://host.docker.internal:1234/v1
       api_key: sk-lm-studio
+      ttl: 300
       input_cost_per_token: 0
       output_cost_per_token: 0
 
@@ -104,6 +105,7 @@ model_list:
       model: "openai/qwen2.5-coder-32b-instruct"
       api_base: http://host.docker.internal:1234/v1
       api_key: sk-lm-studio
+      ttl: 300
       input_cost_per_token: 0
       output_cost_per_token: 0
 
@@ -178,7 +180,11 @@ model_list:
 #     api_key: os.environ/OPENAI_API_KEY
 
 
-# router_settings:
+router_settings:
+  model_group_alias:
+    "aida/think": "lmstudio/qwen3.6-35b-a3b-think"
+    "aida/code": "lmstudio/qwen2.5-coder-32b-instruct"
+
 #   routing_strategy: usage-based-routing-v2
 #   redis_host: os.environ/REDIS_HOST
 #   redis_password: os.environ/REDIS_PASSWORD
