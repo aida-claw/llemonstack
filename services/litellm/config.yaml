@@ -89,10 +89,19 @@ general_settings:
   # Disable default team, when true user cannot create personal keys
   # default_team_disabled: true
 model_list:
-  # LM Studio — Primary inference backend (~45 tok/s on M4 Pro 64GB)
-  - model_name: "lmstudio/qwen3.6-35b-a3b"
+  # LM Studio — Primary thinking backend (~45 tok/s on M4 Pro 64GB)
+  - model_name: "lmstudio/qwen3.6-35b-a3b-think"
     litellm_params:
       model: "openai/qwen3.6-35b-a3b"
+      api_base: http://host.docker.internal:1234/v1
+      api_key: sk-lm-studio
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+
+  # LM Studio — Primary coding backend (~?? tok/s on M4 Pro 64GB)
+  - model_name: "lmstudio/qwen2.5-coder-32b-instruct"
+    litellm_params:
+      model: "openai/qwen2.5-coder-32b-instruct"
       api_base: http://host.docker.internal:1234/v1
       api_key: sk-lm-studio
       input_cost_per_token: 0
