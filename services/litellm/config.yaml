@@ -90,7 +90,7 @@ general_settings:
   # default_team_disabled: true
 model_list:
   # LM Studio — Primary thinking backend (~45 tok/s on M4 Pro 64GB)
-  - model_name: "lmstudio/qwen3.6-35b-a3b-think"
+  - model_name: "aida/think"
     litellm_params:
       model: "openai/qwen3.6-35b-a3b"
       api_base: http://host.docker.internal:1234/v1
@@ -100,7 +100,7 @@ model_list:
       output_cost_per_token: 0
 
   # LM Studio — Primary coding backend (~?? tok/s on M4 Pro 64GB)
-  - model_name: "lmstudio/qwen2.5-coder-32b-instruct"
+  - model_name: "aida/code"
     litellm_params:
       model: "openai/qwen2.5-coder-32b-instruct"
       api_base: http://host.docker.internal:1234/v1
@@ -180,11 +180,10 @@ model_list:
 #     api_key: os.environ/OPENAI_API_KEY
 
 
-router_settings:
-  model_group_alias:
-    "aida/think": "lmstudio/qwen3.6-35b-a3b-think"
-    "aida/code": "lmstudio/qwen2.5-coder-32b-instruct"
-
+# router_settings:
+#  model_group_alias:
+#    "aida/think": "lmstudio/qwen3.6-35b-a3b-think"
+#    "aida/code": "lmstudio/qwen2.5-coder-32b-instruct"
 #   routing_strategy: usage-based-routing-v2
 #   redis_host: os.environ/REDIS_HOST
 #   redis_password: os.environ/REDIS_PASSWORD
