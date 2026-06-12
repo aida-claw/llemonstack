@@ -92,22 +92,27 @@ model_list:
   # LM Studio — Primary thinking backend (~45 tok/s on M4 Pro 64GB)
   - model_name: "aida/think"
     litellm_params:
-      model: "openai/qwen3.6-35b-a3b"
+      model: "openai/qwen-var/qwen3.6-35b-a3b-q8-mlx-think"
       api_base: http://host.docker.internal:1234/v1
       api_key: sk-lm-studio
-      ttl: 300
+      supports_function_calling: true
       input_cost_per_token: 0
       output_cost_per_token: 0
+      extra_body:
+        ttl: 1800
 
   # LM Studio — Primary coding backend (~?? tok/s on M4 Pro 64GB)
   - model_name: "aida/code"
     litellm_params:
-      model: "openai/qwen2.5-coder-32b-instruct"
+      model: "openai/qwen-var/qwen3.6-35b-a3b-q8-mlx-nothink"
       api_base: http://host.docker.internal:1234/v1
       api_key: sk-lm-studio
-      ttl: 300
+      supports_function_calling: true
+      stream: false
       input_cost_per_token: 0
       output_cost_per_token: 0
+      extra_body:
+        ttl: 1800
 
   # LM Studio — Embedding model for RAG pipelines (Qdrant)
   - model_name: "lmstudio/qwen3-embedding-8b"
