@@ -42,8 +42,8 @@ x-environment: &common-env
 
   # Custom & community nodes settings
   # See https://docs.n8n.io/hosting/configuration/environment-variables/nodes/
-  NODE_FUNCTION_ALLOW_EXTERNAL: "*" # Allows any external node to be imported in n8n code nodes
-  NODE_FUNCTION_ALLOW_BUILTIN: "*" # Allow built-in nodes to be imported in n8n code nodes
+  # NODE_FUNCTION_ALLOW_EXTERNAL: "*"   # Aida-Claw: Disarmed > Allows any external node to be imported in n8n code nodes.
+  NODE_FUNCTION_ALLOW_BUILTIN: "crypto" # Aida-Claw: Narrowed from "*" — sole audited require() is crypto (HMAC nodes), 2026-07-17.
   N8N_COMMUNITY_PACKAGES_ENABLED: true # Allow community packages to be installed
   N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE: true # Allow community packages to be used as nodes for AI Agents
   # N8N_CUSTOM_EXTENSIONS # Path to a custom n8n extension
@@ -71,6 +71,12 @@ x-environment: &common-env
   N8N_USER_MANAGEMENT_JWT_SECRET: # Set by init script in .env
   OLLAMA_HOST: # Set by start script as env var
 
+  # Aida-Claw: Trinity webhook integration
+  GENERIC_TIMEZONE: "Australia/Melbourne"
+  TZ: "Australia/Melbourne"
+  N8N_BLOCK_ENV_ACCESS_IN_NODE: false # Aida-Claw: Allow $env access in expressions and Code nodes (HMAC secret sourcing)
+  TRINITY_WEBHOOK_SECRET: ${TRINITY_WEBHOOK_SECRET} # Set in .env — HMAC secret for Trinity gateway webhook
+
 # Common volumes
 x-volume-n8n-storage: &volume-n8n-storage n8n_storage:/home/node/.n8n
 x-volume-import: &volume-import ${LLEMONSTACK_IMPORT_VOLUME_PATH:-./import}/n8n:/import
@@ -85,6 +91,8 @@ x-n8n: &service-n8n
   restart: unless-stopped
   ports:
     - 127.0.0.1:5678:5678 # Changed from 5678 to 5679 to avoid conflict with n8n
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   # Add common environment variables and volumes to the service
   environment: *common-env
