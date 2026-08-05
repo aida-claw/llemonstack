@@ -7,35 +7,31 @@ description: Scrape, crawl and extract websites into LLM-friendly structured dat
 compose_file: docker-compose.yaml
 service_group: middleware
 
+# Prebuilt, digest-pinned images (see docker-compose.yaml). No source build:
+# the `repo:` block is intentionally removed — nothing is cloned into .llemonstack/repos.
+
 provides:
-  firecrawl: firecrawl-api # Name of the container
-  firecrawl-playwright: firecrawl-playwright-service # Name of the container
+  firecrawl: firecrawl-api                        # main API container (harness)
+  firecrawl-playwright: firecrawl-playwright-service
 
-depends_on:
-  redis:
-    condition: service_healthy
-
-repo:
-  url: https://github.com/mendableai/firecrawl.git
-  dir: firecrawl
-  sparse: false
-  checkFile: apps/api/Dockerfile # Make sure Dockerfile is present in the repo
+# No stack-service dependencies: Firecrawl runs its own isolated
+# redis / rabbitmq / nuq-postgres (state-isolated, network-integrated).
+# (Former `depends_on: redis` removed — that referenced the shared stack redis.)
 
 exposes:
-  host:
-    dashboard:
-      name: Firecrawl Queues
-      url: http://localhost:3002/admin/${FIRECRAWL_BULL_KEY}/queues
   internal:
     firecrawl-api:
       name: Firecrawl API
-      url: http://firecrawl:3002/v1/
+      url: http://firecrawl-api:3002/        # in-network alias; Hermes web.extract_backend target
     playwright:
       name: Playwright Service
-      url: http://playwright-service:3000/scrape
+      url: http://firecrawl-playwright-service:3000/scrape
+  # No host exposes: the api host port mapping was dropped for containment.
+  # (Former host dashboard at localhost:3002 requires a published port; omitted by design.)
 
 init:
   generate:
     FIRECRAWL_BULL_KEY:
       method: generateSecretKey
       length: 20
+      

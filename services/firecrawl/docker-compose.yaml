@@ -1,105 +1,144 @@
-# Firecrawl
+# Firecrawl — aida-claw fork (prebuilt, digest-pinned, isolated-state / integrated-network)
+# Rewritten 2026-08 for Firecrawl 2.10.6 NUQ architecture.
+# Topology: single api harness (manages api+workers as subprocesses) + playwright
+#           + isolated redis/rabbitmq/nuq-postgres. FoundationDB path omitted.
+# Network: shared aida-claw-v2_network (Hermes reachability). State: fully isolated.
 
 networks:
   default:
     name: ${LLEMONSTACK_NETWORK_NAME}
     external: true
 
-x-common-service: &common-service
-  build:
-    context: ${LLEMONSTACK_REPOS_PATH:-.}/firecrawl/apps/api
-
-  ulimits:
-    nofile:
-      soft: 65535
-      hard: 65535
-
-  # Enable access to host if using Ollama
-  # extra_hosts:
-  #   - "host.docker.internal:host-gateway"
-
 x-common-env: &common-env
-  REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD}@redis:6379}
-  REDIS_RATE_LIMIT_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD}@redis:6379}
-
-  PLAYWRIGHT_MICROSERVICE_URL: ${PLAYWRIGHT_MICROSERVICE_URL:-http://firecrawl-playwright-service:3000/scrape}
-
-  USE_DB_AUTHENTICATION: ${USE_DB_AUTHENTICATION:-false}
-
-  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
-  MODEL_NAME: ${MODEL_NAME:-}
-  MODEL_EMBEDDING_NAME: ${MODEL_EMBEDDING_NAME:-}
-  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
-
-  SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
-
-  BULL_AUTH_KEY: ${BULL_AUTH_KEY:-}
-  TEST_API_KEY: ${TEST_API_KEY:-}
-
-  SELF_HOSTED_WEBHOOK_URL: ${SELF_HOSTED_WEBHOOK_URL:-}
-
-  SERPER_API_KEY: ${SERPER_API_KEY:-}
-  SEARCHAPI_API_KEY: ${SEARCHAPI_API_KEY:-}
-
-  LOGGING_LEVEL: ${LOGGING_LEVEL:-INFO}
-
-  PROXY_SERVER: ${PROXY_SERVER:-}
-  PROXY_USERNAME: ${PROXY_USERNAME:-}
-  PROXY_PASSWORD: ${PROXY_PASSWORD:-}
-
-  SEARXNG_ENDPOINT: ${SEARXNG_ENDPOINT:-}
-  SEARXNG_ENGINES: ${SEARXNG_ENGINES:-}
-  SEARXNG_CATEGORIES: ${SEARXNG_CATEGORIES:-}
-
-  # POSTHOG_API_KEY: ${POSTHOG_API_KEY:-}
-  # POSTHOG_HOST: ${POSTHOG_HOST:-}
-
-  # SUPABASE_ANON_TOKEN: ${SUPABASE_ANON_TOKEN:-}
-  # SUPABASE_URL: ${SUPABASE_URL:-}
-  # SUPABASE_SERVICE_TOKEN: ${SUPABASE_SERVICE_TOKEN}
+  # --- queue backends (external, harness connects rather than self-manages) ---
+  # NUQ_DATABASE_URL set => harness skips docker-in-docker postgres setup (harness.js:429)
+  NUQ_DATABASE_URL: postgresql://postgres:${FIRECRAWL_POSTGRES_PASSWORD}@firecrawl-nuq-postgres:5432/postgres
+  NUQ_DATABASE_URL_LISTEN: postgresql://postgres:${FIRECRAWL_POSTGRES_PASSWORD}@firecrawl-nuq-postgres:5432/postgres
+  NUQ_RABBITMQ_URL: amqp://firecrawl-rabbitmq:5672
+  REDIS_URL: redis://firecrawl-redis:6379
+  REDIS_RATE_LIMIT_URL: redis://firecrawl-redis:6379
+  PLAYWRIGHT_MICROSERVICE_URL: http://firecrawl-playwright-service:3000/scrape
+  # --- postgres coordinates (harness/workers read these too) ---
+  POSTGRES_HOST: firecrawl-nuq-postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: ${FIRECRAWL_POSTGRES_PASSWORD}
+  POSTGRES_DB: postgres
+  USE_DB_AUTHENTICATION: "false"
+  # --- queue backend selection: unset NUQ_BACKEND => Postgres nuq-workers (harness.js:660) ---
+  # NUQ_BACKEND intentionally omitted (Postgres path, not FoundationDB)
+  # --- concurrency / workers ---
+  NUM_WORKERS_PER_QUEUE: "2"
+  CRAWL_CONCURRENT_REQUESTS: "3"
+  MAX_CONCURRENT_JOBS: "2"
+  # --- admin dashboard / queue auth ---
+  BULL_AUTH_KEY: ${FIRECRAWL_BULL_KEY}
+  # --- logging ---
+  LOGGING_LEVEL: ${FIRECRAWL_LOGGING_LEVEL:-INFO}
 
 services:
+  firecrawl-nuq-postgres:
+    image: ghcr.io/firecrawl/nuq-postgres@sha256:aed86f62858f29bd971abddcdeb301c12888098d2cf5d33c1ba42b053bc460f6
+    container_name: firecrawl-nuq-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${FIRECRAWL_POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    # NUQ schema auto-applies via /docker-entrypoint-initdb.d/010-nuq.sql on first boot (empty datadir).
+    # No persistent volume: queue state is ephemeral/regenerable; cold-empty on restart is acceptable.
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options: { max-size: "10m", max-file: "3", compress: "true" }
+
+  firecrawl-rabbitmq:
+    image: rabbitmq@sha256:e582c0bc7766f3342496d8485efb5a1df782b5ce3886ad017e2eaae442311f69
+    container_name: firecrawl-rabbitmq
+    command: rabbitmq-server
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options: { max-size: "5m", max-file: "2", compress: "true" }
+
+  firecrawl-redis:
+    image: redis@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952
+    container_name: firecrawl-redis
+    command: redis-server --bind 0.0.0.0
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options: { max-size: "5m", max-file: "2", compress: "true" }
+
   firecrawl-playwright-service:
-    build:
-      context: ${LLEMONSTACK_REPOS_PATH:-.}/firecrawl/apps/playwright-service-ts
+    image: ghcr.io/firecrawl/playwright-service@sha256:0f462e0915631c77f9eb8117bbfa75dcce48ac999a6358ba97a262869ae9ace9
     container_name: firecrawl-playwright-service
     environment:
-      PORT: 3000
-      PROXY_SERVER: ${PROXY_SERVER:-}
-      PROXY_USERNAME: ${PROXY_USERNAME:-}
-      PROXY_PASSWORD: ${PROXY_PASSWORD:-}
-      BLOCK_MEDIA: ${BLOCK_MEDIA:-}
+      PORT: "3000"
+      PROXY_SERVER: ${FIRECRAWL_PROXY_SERVER:-}
+      PROXY_USERNAME: ${FIRECRAWL_PROXY_USERNAME:-}
+      PROXY_PASSWORD: ${FIRECRAWL_PROXY_PASSWORD:-}
+      BLOCK_MEDIA: ${FIRECRAWL_BLOCK_MEDIA:-}
+      MAX_CONCURRENT_PAGES: "3"
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 2g
+    tmpfs:
+      - /tmp/.cache:noexec,nosuid,size=1g
+    logging:
+      driver: "json-file"
+      options: { max-size: "10m", max-file: "3", compress: "true" }
 
   firecrawl-api:
-    <<: *common-service
+    image: ghcr.io/firecrawl/firecrawl@sha256:d90fe7b1e19fb1f6eb028f85aa9a48069c61cba2a96fd7331bc014bf22f6cc51
     container_name: firecrawl-api
+    # Use the image's own entrypoint: docker-entrypoint.sh -> harness.js --start-docker
+    # (--start-docker = skip install, assume built; harness.js:906). No command override.
     environment:
       <<: *common-env
       HOST: "0.0.0.0"
-      PORT: ${INTERNAL_PORT:-3002}
-      FLY_PROCESS_GROUP: app
+      PORT: "3002"
+      INTERNAL_PORT: "3002"
+      ENV: local
+      HARNESS_STARTUP_TIMEOUT_MS: "180000"
     depends_on:
-      - firecrawl-playwright-service
+      firecrawl-nuq-postgres:
+        condition: service_healthy
+      firecrawl-rabbitmq:
+        condition: service_healthy
+      firecrawl-redis:
+        condition: service_healthy
+      firecrawl-playwright-service:
+        condition: service_started
+    cpus: 4.0
+    mem_limit: 4g
+    memswap_limit: 4g
     ports:
-      - "${PORT:-3002}:${INTERNAL_PORT:-3002}"
-    command: ["pnpm", "run", "start:production"]
-    volumes:
-      - ./healthcheck.js:/healthcheck.js
+      - "127.0.0.1:3002:3002"
     healthcheck:
-      test: ["CMD", "node", "/healthcheck.js"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3002/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
-
-  firecrawl-worker:
-    <<: *common-service
-    container_name: firecrawl-worker
-    environment:
-      <<: *common-env
-      FLY_PROCESS_GROUP: worker
-    depends_on:
-      - firecrawl-playwright-service
-      - firecrawl-api
-    command: ["pnpm", "run", "workers"]
+      start_period: 90s
+    logging:
+      driver: "json-file"
+      options: { max-size: "10m", max-file: "3", compress: "true" }
+      
