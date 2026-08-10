@@ -39,6 +39,7 @@ x-common-env: &common-env
 services:
   firecrawl-nuq-postgres:
     image: ghcr.io/firecrawl/nuq-postgres@sha256:aed86f62858f29bd971abddcdeb301c12888098d2cf5d33c1ba42b053bc460f6
+    restart: unless-stopped
     container_name: firecrawl-nuq-postgres
     environment:
       POSTGRES_USER: postgres
@@ -59,6 +60,7 @@ services:
 
   firecrawl-rabbitmq:
     image: rabbitmq@sha256:e582c0bc7766f3342496d8485efb5a1df782b5ce3886ad017e2eaae442311f69
+    restart: unless-stopped
     container_name: firecrawl-rabbitmq
     command: rabbitmq-server
     mem_limit: 512m
@@ -74,6 +76,7 @@ services:
 
   firecrawl-redis:
     image: redis@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952
+    restart: unless-stopped
     container_name: firecrawl-redis
     command: redis-server --bind 0.0.0.0
     mem_limit: 256m
@@ -89,6 +92,7 @@ services:
 
   firecrawl-playwright-service:
     image: ghcr.io/firecrawl/playwright-service@sha256:0f462e0915631c77f9eb8117bbfa75dcce48ac999a6358ba97a262869ae9ace9
+    restart: unless-stopped
     container_name: firecrawl-playwright-service
     environment:
       PORT: "3000"
@@ -108,6 +112,7 @@ services:
 
   firecrawl-api:
     image: ghcr.io/firecrawl/firecrawl@sha256:d90fe7b1e19fb1f6eb028f85aa9a48069c61cba2a96fd7331bc014bf22f6cc51
+    restart: unless-stopped
     container_name: firecrawl-api
     # Use the image's own entrypoint: docker-entrypoint.sh -> harness.js --start-docker
     # (--start-docker = skip install, assume built; harness.js:906). No command override.
